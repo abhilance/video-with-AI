@@ -10,32 +10,39 @@ const VideoUploadForm = () => {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await fetch("/api/video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          description,
-          videoUrl,
-          thumbnailUrl,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to upload video");
-      alert("Video uploaded successfully!");
-      setTitle("");
-      setDescription("");
-      setVideoUrl("");
-      setThumbnailUrl("");
-    } catch (err: any) {
-      alert(err.message || "Upload failed");
-    } finally {
-      setLoading(false);
-    }
+  e.preventDefault();
+  setLoading(true);
+  
+  const videoData = {
+    title,        // Make sure this matches your API expectation
+    description,
+    videoUrl,
+    thumbnailUrl,
   };
+  
+  console.log("Sending video data:", videoData); // DEBUG LOG
+  
+  try {
+    const res = await fetch("/api/video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(videoData),
+    });
+    
+    const responseData = await res.json();
+    console.log("API Response:", responseData); // DEBUG LOG
+    
+    if (!res.ok) throw new Error(responseData.error || "Failed to upload video");
+    
+    alert("Video uploaded successfully!");
+    // Clear form...
+  } catch (err: any) {
+    console.error("Upload error:", err); // DEBUG LOG
+    alert(err.message || "Upload failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10 p-6 border rounded bg-white">

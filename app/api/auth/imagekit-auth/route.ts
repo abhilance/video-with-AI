@@ -1,22 +1,21 @@
-// File: app/api/upload-auth/route.ts
 import { getUploadAuthParams } from "@imagekit/next/server"
 
 export async function GET() {
     try {
-        const authenticationParametres = getUploadAuthParams({
-        privateKey: process.env.IMAGEKIT_PRIVATE_KEY as string, // Never expose this on client side
-        publicKey: process.env.NEXT_PUBLIC_PUBLIC_KEY as string,
-       
-    })
+        const authenticationParameters = getUploadAuthParams({
+            privateKey: process.env.IMAGEKIT_PRIVATE_KEY as string,
+            publicKey: process.env.NEXT_PUBLIC_PUBLIC_KEY as string,
+        })
 
-    return Response.json({ authenticationParametres, publicKey: process.env.IMAGEKIT_PUBLIC_KEY })
+        return Response.json({ 
+            ...authenticationParameters, 
+            publicKey: process.env.NEXT_PUBLIC_PUBLIC_KEY 
+        })
     } catch (error) {
+        console.error("ImageKit auth error:", error);
         return Response.json(
-            { 
-                error:"authen for imagekit failed"
-            },
-            {status:500}
+            { error: "Authentication for ImageKit failed" },
+            { status: 500 }
         )
-        
     }
 }

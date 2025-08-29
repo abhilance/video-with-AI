@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     await connectToDatabase();
     const body: IVideo = await request.json();
     if (
-      !body.tittle ||
+      !body.title ||
       !body.description ||
       !body.videoUrl ||
       !body.thumbnailUrl
