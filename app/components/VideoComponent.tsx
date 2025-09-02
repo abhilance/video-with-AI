@@ -1,9 +1,8 @@
 "use client";
 
-import { Video } from "@imagekit/next";   // ImageKit SDK
-import { IVideo } from "@/models/Video";  // Your type/interface
+import { IVideo } from "@/models/Video";
 import { useState, useRef } from "react";
-import { Trash2, Play, Pause } from "lucide-react";
+import { Trash2, Play, Pause, MoreVertical } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useNotification } from "./Notification";
 
@@ -18,6 +17,7 @@ export default function VideoComponent({ video, onVideoDeleted }: VideoComponent
   const [isPlaying, setIsPlaying] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { data: session } = useSession();
   const { showNotification } = useNotification();
@@ -25,7 +25,7 @@ export default function VideoComponent({ video, onVideoDeleted }: VideoComponent
   // Smart thumbnail (AI auto-crop)
   const getSmartThumbnailUrl = () => {
     if (!video.thumbnailUrl) return "";
-    return `${video.thumbnailUrl}?tr=w-540,h-960,c-smart_crop,fo-auto`;
+    return `${video.thumbnailUrl}?tr=w-400,h-600,c-smart_crop,fo-auto`;
   };
 
   const smartThumbnailUrl = getSmartThumbnailUrl();
@@ -70,7 +70,7 @@ export default function VideoComponent({ video, onVideoDeleted }: VideoComponent
 
   // Handle click to play/pause video
   const handleVideoClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent link navigation
+    e.preventDefault();
     e.stopPropagation();
     
     if (videoRef.current) {
@@ -78,10 +78,10 @@ export default function VideoComponent({ video, onVideoDeleted }: VideoComponent
         videoRef.current.pause();
         setIsPlaying(false);
       } else {
-        videoRef.current.currentTime = 0; // Start from beginning
+        videoRef.current.currentTime = 0;
         videoRef.current.play().catch(console.error);
         setIsPlaying(true);
-        setIsHovered(false); // Stop hover preview mode
+        setIsHovered(false);
       }
     }
   };
@@ -118,131 +118,150 @@ export default function VideoComponent({ video, onVideoDeleted }: VideoComponent
   };
 
   return (
-    <div className="card bg-base-100 shadow hover:shadow-lg transition-all duration-300">
-      <figure 
-        className="relative px-4 pt-4"
+    <div className="group bg-gray-900 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-700 transition-all duration-300">
+      <div 
+        className="relative aspect-[9/16] bg-gray-800 overflow-hidden"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <div className="relative group w-full">
-          <div
-            className="rounded-xl overflow-hidden relative w-full bg-gray-200 cursor-pointer"
-            style={{ aspectRatio: "9/16" }}
-            onClick={handleVideoClick}
-          >
-            {/* Show thumbnail when not hovered and not playing */}
-            {!isHovered && !isPlaying ? (
-              <img
-                src={imageError ? video.thumbnailUrl : smartThumbnailUrl}
-                alt={video.title}
-                className="w-full h-full object-cover"
-                onError={() => setImageError(true)}
-                loading="lazy"
-              />
-            ) : (
-              <video
-                ref={videoRef}
-                src={video.videoUrl}
-                muted={!isPlaying} // Unmuted when playing, muted during preview
-                loop={false}
-                controls={isPlaying} // Show controls only when actually playing
-                className="w-full h-full object-cover"
-                onTimeUpdate={handleTimeUpdate}
-                onEnded={handleVideoEnd}
-                preload="metadata"
-              />
-            )}
+        {/* Video/Thumbnail */}
+        <div
+          className="relative w-full h-full cursor-pointer"
+          onClick={handleVideoClick}
+        >
+          {!isHovered && !isPlaying ? (
+            <img
+              src={imageError ? video.thumbnailUrl : smartThumbnailUrl}
+              alt={video.title}
+              className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
+              loading="lazy"
+            />
+          ) : (
+            <video
+              ref={videoRef}
+              src={video.videoUrl}
+              muted={!isPlaying}
+              loop={false}
+              controls={isPlaying}
+              className="w-full h-full object-cover"
+              onTimeUpdate={handleTimeUpdate}
+              onEnded={handleVideoEnd}
+              preload="metadata"
+            />
+          )}
 
-            {/* Play/Pause button overlay */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
-              <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                {isPlaying ? (
-                  <Pause className="w-6 h-6 text-gray-800" />
-                ) : (
-                  <Play className="w-6 h-6 text-gray-800 ml-1" />
-                )}
-              </div>
+          {/* Play/Pause Overlay */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+            <div className="w-12 h-12 bg-black/70 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {isPlaying ? (
+                <Pause className="w-6 h-6 text-white" />
+              ) : (
+                <Play className="w-6 h-6 text-white ml-0.5" />
+              )}
             </div>
-
-            {/* Preview indicator */}
-            {isHovered && !isPlaying && (
-              <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                5s Preview
-              </div>
-            )}
-
-            {/* Playing indicator */}
-            {isPlaying && (
-              <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded animate-pulse">
-                ● LIVE
-              </div>
-            )}
           </div>
 
-          {/* Delete button - only show if user is logged in */}
+          {/* Status Indicators */}
+          {isHovered && !isPlaying && (
+            <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full">
+              Preview
+            </div>
+          )}
+
+          {isPlaying && (
+            <div className="absolute top-3 left-3 bg-red-600 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+              <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
+              LIVE
+            </div>
+          )}
+
+          {/* Menu Button */}
           {session && (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowDeleteConfirm(true);
-              }}
-              className="absolute top-2 left-2 w-8 h-8 bg-red-500/80 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              title="Delete video"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="absolute top-3 right-3">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowMenu(!showMenu);
+                }}
+                className="w-8 h-8 bg-black/70 backdrop-blur-sm text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showMenu && (
+                <div className="absolute right-0 top-10 w-40 bg-gray-900 border border-gray-800 rounded-lg shadow-xl z-10">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowDeleteConfirm(true);
+                      setShowMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 text-sm transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
-      </figure>
+      </div>
 
-      <div className="card-body p-4">
-        {/* Title */}
-        <h2 className="card-title text-lg line-clamp-2">{video.title}</h2>
-
-        {/* Description */}
-        <p className="text-sm text-base-content/70 line-clamp-2">
+      {/* Video Info */}
+      <div className="p-4">
+        <h3 className="font-semibold text-white text-lg mb-2 line-clamp-2">
+          {video.title}
+        </h3>
+        
+        <p className="text-gray-400 text-sm mb-3 line-clamp-2">
           {video.description}
         </p>
 
-        {/* Badges */}
-        <div className="flex items-center gap-2 mt-3">
-          <span className="badge badge-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">
+        {/* Tags */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs bg-purple-600/20 text-purple-300 px-2 py-1 rounded-full border border-purple-600/30">
             AI Enhanced
           </span>
-          <span className="badge badge-outline badge-sm">Smart Crop</span>
+          <span className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full border border-gray-700">
+            {video.transformation?.quality || 100}% Quality
+          </span>
         </div>
       </div>
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md mx-4">
-            <h3 className="text-lg font-bold mb-4">Delete Video?</h3>
-            <p className="text-gray-600 mb-6">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold text-white mb-4">Delete Video?</h3>
+            <p className="text-gray-400 mb-6">
               Are you sure you want to delete "{video.title}"? This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="btn btn-outline"
+                className="px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors"
                 disabled={deleting}
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="btn btn-error"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
                 disabled={deleting}
               >
                 {deleting ? (
                   <>
-                    <span className="loading loading-spinner loading-sm"></span>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     Deleting...
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="w-4 h-4" />
                     Delete
                   </>
                 )}
@@ -251,7 +270,14 @@ export default function VideoComponent({ video, onVideoDeleted }: VideoComponent
           </div>
         </div>
       )}
+
+      {/* Close menu when clicking outside */}
+      {showMenu && (
+        <div 
+          className="fixed inset-0 z-[5]" 
+          onClick={() => setShowMenu(false)}
+        ></div>
+      )}
     </div>
   );
 }
-
